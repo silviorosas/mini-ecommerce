@@ -1,0 +1,52 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: usuarios-service
+          uri: lb://usuarios-service
+          predicates:
+            - Path=/usuarios/**
+        - id: productos-service
+          uri: lb://productos-service
+          predicates:
+            - Path=/productos/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: productos-service-circuit-breaker
+                fallbackUri: forward:/fallback
+        - id: ordenes-service
+          uri: lb://ordenes-service
+          predicates:
+            - Path=/ordenes/**
+        - id: pagos-service
+          uri: lb://pagos-service
+          predicates:
+            - Path=/pagos/**
+        - id: notificaciones-service
+          uri: lb://notificaciones-service
+          predicates:
+            - Path=/notificaciones/**
+        - id: analytics-service
+          uri: lb://analytics-service
+          predicates:
+            - Path=/analytics/**
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG

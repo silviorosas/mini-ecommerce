@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/analytics-service/analytics-service.iml" filepath="$PROJECT_DIR$/analytics-service/analytics-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/config-server/config-server.iml" filepath="$PROJECT_DIR$/config-server/config-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/discovery-server/discovery-server.iml" filepath="$PROJECT_DIR$/discovery-server/discovery-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gateway-service/gateway-service.iml" filepath="$PROJECT_DIR$/gateway-service/gateway-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/mini-ecommerce.iml" filepath="$PROJECT_DIR$/.idea/mini-ecommerce.iml" />
+      <module fileurl="file://$PROJECT_DIR$/notificaciones-service/notificaciones-service.iml" filepath="$PROJECT_DIR$/notificaciones-service/notificaciones-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ordenes-service/ordenes-service.iml" filepath="$PROJECT_DIR$/ordenes-service/ordenes-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/pagos-service/pagos-service.iml" filepath="$PROJECT_DIR$/pagos-service/pagos-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/productos-service/productos-service.iml" filepath="$PROJECT_DIR$/productos-service/productos-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/usuarios-service/usuarios-service.iml" filepath="$PROJECT_DIR$/usuarios-service/usuarios-service.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,0 +1,91 @@
+version: '3'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOO_CLIENT_PORT=2181
+      - ZOO_TICK_TIME=2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+
+  # Servicio para la base de datos de productos (MongoDB)
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=productos_db
+    volumes:
+      - mongodb_data:/data/db
+
+  # Servicio para la base de datos de órdenes (MySQL)
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=ordenes_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # --- Microservicios de Spring Boot ---
+  discovery-server:
+    build:
+      context: ./discovery-server
+      dockerfile: Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+
+  productos-service:
+    build:
+      context: ./productos-service
+      dockerfile: Dockerfile
+    container_name: productos-service
+    ports:
+      - "8002:8002"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_DATA_MONGODB_HOST=mongodb
+    # Se agrega esta línea para asegurar que este servicio espere a que discovery-server
+    # y mongodb estén completamente levantados antes de iniciar.
+    depends_on:
+      - discovery-server
+      - mongodb
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    # Se agrega esta línea para asegurar que el gateway espere a que discovery-server
+    # esté listo antes de intentar registrarse y enrutar.
+    depends_on:
+      - discovery-server
+
+volumes:
+  mongodb_data:
+  mysql_data:
