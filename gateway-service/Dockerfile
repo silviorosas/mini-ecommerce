@@ -1,5 +1,5 @@
 # Usa una imagen base de Java
-FROM eclipse-temurin:17-jdk-focal
+FROM eclipse-temurin:17
 
 # Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app

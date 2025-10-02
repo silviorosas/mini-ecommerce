@@ -1,91 +1,209 @@
-version: '3'
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      - ZOO_CLIENT_PORT=2181
-      - ZOO_TICK_TIME=2000
-
-  kafka:
-    image: confluentinc/cp-kafka:7.0.1
-    container_name: kafka
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-
-  # Servicio para la base de datos de productos (MongoDB)
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=productos_db
-    volumes:
-      - mongodb_data:/data/db
-
-  # Servicio para la base de datos de órdenes (MySQL)
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    ports:
-      - "3307:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=ordenes_db
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  # --- Microservicios de Spring Boot ---
   discovery-server:
-    build:
-      context: ./discovery-server
-      dockerfile: Dockerfile
-    container_name: discovery-server
+    build: ./discovery-server
     ports:
       - "8761:8761"
+    networks:
+      - me-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  config-server:
+    build: ./config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - me-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  gateway-service:
+    build: ./gateway-service
+    ports:
+      - "8080:8080"
+    networks:
+      - me-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+    command: ["sh", "-c", "wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - me-net
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+
+  mongodb:
+    image: mongo:6.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_root
+      MONGO_INITDB_ROOT_PASSWORD: mongo_rootpass
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - me-net
+    healthcheck:
+      test: [ "CMD-SHELL", "mongosh --username mongo_root --password mongo_rootpass --eval 'db.adminCommand({ ping: 1 })' || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   productos-service:
     build:
       context: ./productos-service
       dockerfile: Dockerfile
-    container_name: productos-service
-    ports:
-      - "8002:8002"
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SPRING_DATA_MONGODB_HOST=mongodb
-    # Se agrega esta línea para asegurar que este servicio espere a que discovery-server
-    # y mongodb estén completamente levantados antes de iniciar.
+      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo_root:mongo_rootpass@mongodb:27017/productosdb?authSource=admin
+      - SERVER_PORT=8081
     depends_on:
-      - discovery-server
-      - mongodb
+      mongodb:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    networks:
+      - me-net
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+    command: ["sh", "-c", "wait-for-it.sh mongodb:27017 -- wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
 
-  gateway-service:
-    build:
-      context: ./gateway-service
-      dockerfile: Dockerfile
-    container_name: gateway-service
-    ports:
-      - "8080:8080"
+  usuarios-service:
+    build: ./usuarios-service
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-    # Se agrega esta línea para asegurar que el gateway espere a que discovery-server
-    # esté listo antes de intentar registrarse y enrutar.
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/ecommerce?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=ecommerce
+      - SPRING_DATASOURCE_PASSWORD=ecommerce
+      - SERVER_PORT=8001
     depends_on:
-      - discovery-server
+      mysql:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    networks:
+      - me-net
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+      - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh # Agregado wait-for-it para esperar por la DB
+    command: ["sh", "-c", "wait-for-it.sh mysql:3306 -- wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
+
+  ordenes-service:
+    build: ./ordenes-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/ecommerce?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=ecommerce
+      - SPRING_DATASOURCE_PASSWORD=ecommerce
+      - SERVER_PORT=8003
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    ports:
+      - "8003:8003"
+    networks:
+      - me-net
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+      - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh # Agregado wait-for-it para esperar por la DB
+    command: ["sh", "-c", "wait-for-it.sh mysql:3306 -- wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
+
+  pagos-service:
+    build: ./pagos-service
+    networks:
+      - me-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+    command: ["sh", "-c", "wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
+
+  notificaciones-service:
+    build: ./notificaciones-service
+    networks:
+      - me-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+    command: ["sh", "-c", "wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
+
+  analytics-service:
+    build: ./analytics-service
+    networks:
+      - me-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    # --- Modificaciones para la solución robusta de espera ---
+    volumes:
+      - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
+    command: ["sh", "-c", "wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar"]
+    # -----------------------------------------------------
 
 volumes:
-  mongodb_data:
-  mysql_data:
+  mysql-data:
+  mongo-data:
+
+networks:
+  me-net:
+    driver: bridge

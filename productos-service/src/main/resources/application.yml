@@ -1,16 +1,17 @@
 server:
-  port: 8002
+  port: 8081
 spring:
   application:
     name: productos-service
   data:
     mongodb:
-      host: mongodb
-      port: 27017
-      database: productos_db
+      uri: mongodb://mongo_root:mongo_rootpass@mongodb:27017/productosdb?authSource=admin
 eureka:
   client:
     serviceUrl:
       defaultZone: http://discovery-server:8761/eureka/
-  instance:
-    health-check-url: http://${spring.cloud.client.ip-address}:${server.port}/actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
