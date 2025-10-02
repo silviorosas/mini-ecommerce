@@ -1,19 +1,9 @@
-server:
-  port: 8001
 spring:
   application:
     name: usuarios-service
-  datasource:
-    # URL completa con el nombre del servicio (mysql), puerto interno (3306)
-    # y todos los parámetros de conexión.
-    url: jdbc:mysql://mysql:3306/ecommerce?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
-    username: ecommerce
-    password: ecommerce
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+  config:
+    import: configserver:http://config-server:8888
+
 eureka:
   client:
     serviceUrl:
