@@ -1,0 +1,13 @@
+server:
+  port: 8081
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://mongo_root:mongo_rootpass@mongodb:27017/productosdb?authSource=admin
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

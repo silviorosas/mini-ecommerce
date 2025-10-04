@@ -1,5 +1,3 @@
-server:
-  port: 8888
 spring:
   application:
     name: config-server
@@ -7,7 +5,11 @@ spring:
     config:
       server:
         native:
+          # Esta es la ruta CRUCIAL que le dice al Config Server dónde encontrar los demás YAMLs.
           search-locations: file:///C:/mini-ecommerce/config-repo/
+  config:
+    # Esta línea permite que el Config Server cargue su propio puerto desde el config-repo.
+    import: "optional:configserver:http://config-server:8888"
 eureka:
   client:
     serviceUrl:

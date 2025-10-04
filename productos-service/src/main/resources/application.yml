@@ -1,17 +1,10 @@
-server:
-  port: 8081
 spring:
   application:
     name: productos-service
-  data:
-    mongodb:
-      uri: mongodb://mongo_root:mongo_rootpass@mongodb:27017/productosdb?authSource=admin
+  config:
+    import: configserver:http://config-server:8888
+
 eureka:
   client:
     serviceUrl:
       defaultZone: http://discovery-server:8761/eureka/
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
