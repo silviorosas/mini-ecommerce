@@ -1,8 +1,8 @@
-server:
-  port: 8761
 spring:
-  application:
-    name: discovery-server
+  config:
+    # Esta línea permite que el Discovery Server cargue su configuración desde el config-repo.
+    # Nota: El Config Server debe arrancar antes que el Discovery Server para que esto funcione.
+    import: "optional:configserver:http://config-server:8888"
 eureka:
   client:
     register-with-eureka: false

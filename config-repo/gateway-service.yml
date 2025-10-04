@@ -1,0 +1,52 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: usuarios-service
+          uri: lb://usuarios-service
+          predicates:
+            - Path=/usuarios/**
+        - id: productos-service
+          uri: lb://productos-service
+          predicates:
+            - Path=/productos/**
+          filters:
+            - StripPrefix=1
+        - id: ordenes-service
+          uri: lb://ordenes-service
+          predicates:
+            - Path=/ordenes/**
+        - id: pagos-service
+          uri: lb://pagos-service
+          predicates:
+            - Path=/pagos/**
+        - id: notificaciones-service
+          uri: lb://notificaciones-service
+          predicates:
+            - Path=/notificaciones/**
+        - id: analytics-service
+          uri: lb://analytics-service
+          predicates:
+            - Path=/analytics/**
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+    org.springframework.web.reactive.function.client.ExchangeFunctions: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    gateway:
+      enabled: true

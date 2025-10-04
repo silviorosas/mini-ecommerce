@@ -1,13 +1,9 @@
-server:
-  port: 8004
 spring:
   application:
     name: pagos-service
-  kafka:
-    consumer:
-      bootstrap-servers: kafka:9092
-      group-id: pagos-group
-      auto-offset-reset: earliest
+  config:
+    import: configserver:http://config-server:8888
+
 eureka:
   client:
     serviceUrl:
