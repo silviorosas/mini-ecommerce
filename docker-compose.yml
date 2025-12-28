@@ -13,8 +13,14 @@ services:
 
   config-server:
     build: ./config-server
+    container_name: config-server
     ports:
       - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+    volumes:
+      # ESTA LÍNEA ES VITAL: Conecta tu carpeta con el contenedor
+      - ./config-repo:/app/config-repo
     networks:
       - me-net
     depends_on:
