@@ -113,11 +113,6 @@ services:
 
   usuarios-service:
     build: ./usuarios-service
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/ecommerce?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
-      - SPRING_DATASOURCE_USERNAME=ecommerce
-      - SPRING_DATASOURCE_PASSWORD=ecommerce
-      - SERVER_PORT=8001
     depends_on:
       mysql:
         condition: service_healthy

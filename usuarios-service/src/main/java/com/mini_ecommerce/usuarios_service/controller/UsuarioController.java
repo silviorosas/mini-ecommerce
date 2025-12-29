@@ -10,19 +10,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/usuarios")
 @AllArgsConstructor
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-    @PostMapping
+    // Cambiamos a "/crear" para mayor claridad en la URL
+    @PostMapping("/crear")
     @ResponseStatus(HttpStatus.CREATED)
     public UsuarioDTO crear(@RequestBody Usuario usuario) {
         return usuarioService.crearUsuario(usuario);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/detalle/{id}")
     public UsuarioDTO obtener(@PathVariable Long id) {
         return usuarioService.obtenerUsuarioPorId(id);
     }
