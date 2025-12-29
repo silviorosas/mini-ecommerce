@@ -8,7 +8,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
       </profile>
-      <profile name="Annotation profile for productos-service" enabled="true">
+      <profile name="Annotation profile for ordenes-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -21,8 +21,8 @@
         <module name="notificaciones-service" />
         <module name="gateway-service" />
         <module name="pagos-service" />
-        <module name="analytics-service" />
         <module name="usuarios-service" />
+        <module name="analytics-service" />
         <module name="productos-service" />
       </profile>
     </annotationProcessing>

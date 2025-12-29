@@ -9,44 +9,37 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
-        - id: usuarios-service
-          uri: lb://usuarios-service
-          predicates:
-            - Path=/usuarios/**
         - id: productos-service
           uri: lb://productos-service
           predicates:
             - Path=/productos/**
-          filters:
-            - StripPrefix=1
+          filters: [ "StripPrefix=1" ]
+        - id: usuarios-service
+          uri: lb://usuarios-service
+          predicates:
+            - Path=/usuarios/**
+          filters: [ "StripPrefix=1" ]
         - id: ordenes-service
           uri: lb://ordenes-service
           predicates:
             - Path=/ordenes/**
+          filters: [ "StripPrefix=1" ]
         - id: pagos-service
           uri: lb://pagos-service
           predicates:
             - Path=/pagos/**
+          filters: [ "StripPrefix=1" ]
         - id: notificaciones-service
           uri: lb://notificaciones-service
           predicates:
             - Path=/notificaciones/**
+          filters: [ "StripPrefix=1" ]
         - id: analytics-service
           uri: lb://analytics-service
           predicates:
             - Path=/analytics/**
+          filters: [ "StripPrefix=1" ]
 
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
-    reactor.netty.http.client: DEBUG
-    org.springframework.web.reactive.function.client.ExchangeFunctions: TRACE
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    gateway:
-      enabled: true
