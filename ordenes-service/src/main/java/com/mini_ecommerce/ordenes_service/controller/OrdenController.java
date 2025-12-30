@@ -17,4 +17,9 @@ public class OrdenController {
     public OrdenDto crearOrden(@RequestBody OrdenDto ordenDto) {
         return ordenService.createOrden(ordenDto);
     }
+
+    @GetMapping
+    public String probar(){
+        return "Prueba de listar ordenes";
+    }
 }
