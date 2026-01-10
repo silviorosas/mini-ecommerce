@@ -11,7 +11,7 @@ spring:
       server:
         native:
           # IMPORTANTE: Dentro de Docker, la ruta es /app/config-repo
-          search-locations: file:/app/config-repo/
+          search-locations: file:///app/config-repo
 
 eureka:
   client:

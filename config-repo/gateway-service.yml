@@ -27,7 +27,7 @@ spring:
         - id: pagos-service
           uri: lb://pagos-service
           predicates:
-            - Path=/pagos/**
+            - Path=/api/pagos/**
           filters: [ "StripPrefix=1" ]
         - id: notificaciones-service
           uri: lb://notificaciones-service

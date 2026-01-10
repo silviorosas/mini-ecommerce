@@ -1,5 +1,5 @@
 server:
-  port: 8003
+  port: 8080
 
 spring:
   datasource:
@@ -7,21 +7,23 @@ spring:
     username: root
     password: rootpass
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-
-  # --- CONFIGURACIÓN DE KAFKA ---
   cloud:
     stream:
       kafka:
         binder:
-          # Usamos "kafka" porque ese es el nombre del servicio en tu docker-compose
           brokers: kafka:9092
-      bindings:
-        # Este nombre debe coincidir con el primer parámetro de streamBridge.send("ordenes-topic", ...)
-        ordenes-topic:
-          destination: ordenes-topic
-          content-type: application/json
+
+# --- AÑADE ESTO AQUÍ (al mismo nivel que 'spring' o 'server') ---
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
