@@ -23,25 +23,24 @@ public class PagoService {
     public void procesarPago(OrdenEventoDto ordenEvento) {
         log.info("Procesando pago para orden: {}", ordenEvento.getId());
 
-        // 1. Creamos y guardamos el pago en la base de datos
         Pago pago = Pago.builder()
                 .ordenId(ordenEvento.getId())
                 .monto(ordenEvento.getTotal())
                 .metodoPago("TARJETA_CREDITO")
-                .estado("APROBADO")
+                .estado("APROBADO") // En la BD de pagos guardas "APROBADO"
                 .build();
 
         pagoRepository.save(pago);
-        log.info("Pago guardado en BD para orden: {}", ordenEvento.getId());
 
-        // 2. NOTIFICAR de vuelta a ordenes-service
-        // IMPORTANTE: El nombre "pagos-topic-out-0" debe coincidir con tu pagos-service.yml
-        // Enviamos el objeto 'pago' (o un DTO de respuesta) para que ordenes-service sepa el nuevo estado
-        streamBridge.send("pagos-topic-out-0", pago);
+        // PREPARAR LA RESPUESTA PARA ORDENES Y NOTIFICACIONES
+        // Reutilizamos el DTO que recibimos, pero le ponemos el estado final
+        ordenEvento.setEstado("PAGADA");
+
+        // ENVIAR EL DTO (No la entidad Pago)
+        streamBridge.send("pagos-topic-out-0", ordenEvento);
 
         log.info("Evento de confirmación enviado a pagos-topic para orden: {}", ordenEvento.getId());
     }
-
     // NUEVO: Método para el controlador
     public List<Pago> listarPagos() {
         return pagoRepository.findAll();

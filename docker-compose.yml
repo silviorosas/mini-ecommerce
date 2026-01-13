@@ -214,7 +214,20 @@ services:
       - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh
       - ./wait-for-eureka.sh:/usr/local/bin/wait-for-eureka.sh
     command: [ "sh", "-c", "wait-for-it.sh mysql:3306 -- wait-for-it.sh kafka:9092 -- wait-for-eureka.sh http://discovery-server:8761 java -jar app.jar" ]
-
+  notificaciones-service:
+    build: ./notificaciones-service
+    container_name: notificaciones-service
+    environment:
+      - SPRING_APPLICATION_NAME=notificaciones-service
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888/
+      - eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+    depends_on:
+      kafka:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - me-net
 volumes:
   mysql-data:
   mongo-data:
