@@ -18,16 +18,17 @@ public class OrdenConsumerConfig {
     @Bean
     public Consumer<PagoResponseDto> consumirRespuestaPago() {
         return pago -> {
-            System.out.println("Recibida confirmación de pago para Orden ID: " + pago.getOrdenId());
+            System.out.println("Recibida confirmación. ID Orden: " + pago.getOrdenId() + " Estado: " + pago.getEstado());
 
             ordenRepository.findById(pago.getOrdenId()).ifPresent(orden -> {
-                if ("APROBADO".equals(pago.getEstado())) {
+                // CAMBIO: Evalúa si el estado es "PAGADA", que es lo que envía el PagoService
+                if ("PAGADA".equals(pago.getEstado())) {
                     orden.setEstado("PAGADA");
                 } else {
                     orden.setEstado("PAGO_RECHAZADO");
                 }
                 ordenRepository.save(orden);
-                System.out.println("Orden " + orden.getId() + " actualizada a estado: " + orden.getEstado());
+                System.out.println("¡Orden " + orden.getId() + " actualizada con éxito!");
             });
         };
     }

@@ -1,6 +1,7 @@
 package com.mini_ecommerce.ordenes_service.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Data
@@ -8,6 +9,8 @@ import lombok.*;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true) // <-- CLAVE: Ignora id, monto y metodoPago que vienen de Pagos
 public class PagoResponseDto {
+
+    @JsonProperty("id")
     private Long ordenId;
     private String estado;
 }
