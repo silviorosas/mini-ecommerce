@@ -24,4 +24,10 @@ public class PagoController {
     public ResponseEntity<Pago> obtenerPorOrden(@PathVariable Long ordenId) {
         return ResponseEntity.ok(pagoService.buscarPorOrdenId(ordenId));
     }
+
+    @GetMapping("/api/pagos/orden/{ordenId}")
+    public ResponseEntity<Pago> obtenerPagoPorOrden(@PathVariable Long ordenId) {
+        // Usas el método buscarPorOrdenId que ya tenías en tu PagoService - se conecta al job
+        return ResponseEntity.ok(pagoService.buscarPorOrdenId(ordenId));
+    }
 }
