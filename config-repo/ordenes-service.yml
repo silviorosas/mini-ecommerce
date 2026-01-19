@@ -5,7 +5,7 @@ spring:
   application:
     name: ordenes-service
   datasource:
-    url: jdbc:mysql://mysql:3306/ecommerce?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://mysql:3306/ecommerce?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=America/Argentina/Buenos_Aires
     username: root
     password: rootpass
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -16,20 +16,27 @@ spring:
 
   cloud:
     function:
-      # Definimos el nombre del Bean que procesa la respuesta del pago
       definition: consumirRespuestaPago
     stream:
       kafka:
         binder:
           brokers: kafka:9092
       bindings:
-        # Salida: Envía la orden creada
         ordenes-topic-out-0:
           destination: ordenes-topic
-        # ENTRADA: Recibe la confirmación del pago (ESTO ES LO QUE FALTABA)
         consumirRespuestaPago-in-0:
           destination: pagos-topic
           group: ordenes-group
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      pagosCB:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
 
 eureka:
   client:

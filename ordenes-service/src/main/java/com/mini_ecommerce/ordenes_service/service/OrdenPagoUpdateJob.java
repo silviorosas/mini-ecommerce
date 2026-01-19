@@ -1,13 +1,18 @@
 package com.mini_ecommerce.ordenes_service.service;
 
 import com.mini_ecommerce.ordenes_service.dto.PagoStatusResponse;
+import com.mini_ecommerce.ordenes_service.entity.Orden;
 import com.mini_ecommerce.ordenes_service.repository.OrdenRepository;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,34 +21,50 @@ import java.util.List;
 public class OrdenPagoUpdateJob {
 
     private final OrdenRepository ordenRepository;
-    private final RestTemplate restTemplate; // Necesario para preguntar a pagos-service
+    private final RestTemplate restTemplate;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
-    // Se ejecuta cada 5 minutos para pruebas (en producción sería una vez al día)
-    @Scheduled(cron = "0 18 22 * * ?", zone = "America/Argentina/Buenos_Aires")
+    @Scheduled(fixedDelay = 10000)
     public void ejecutarContingencia() {
-        log.info("Iniciando Job de Contingencia: Buscando órdenes pendientes...");
+        log.info("▶▶▶ INICIANDO RECONCILIACIÓN INTELIGENTE ◀◀◀");
 
-        // 1. Buscamos todas las órdenes que sigan en PENDIENTE_PAGO
-        ordenRepository.findByEstado("PENDIENTE_PAGO").forEach(orden -> {
+        CircuitBreaker pagosCircuitBreaker = circuitBreakerRegistry.circuitBreaker("pagosCB");
+
+        LocalDateTime umbral = LocalDateTime.now().minusMinutes(10);
+        List<Orden> pendientes = ordenRepository.findByEstadoAndFechaCreacionBefore("PENDIENTE_PAGO", umbral);
+
+        if (pendientes.isEmpty()) {
+            log.info("i No hay órdenes estancadas para procesar.");
+            return;
+        }
+
+        pendientes.forEach(orden -> {
+            log.info("[CB DEBUG] Estado: {} | Fallos: {} | Mínimo requerido: {}",
+                    pagosCircuitBreaker.getState(),
+                    pagosCircuitBreaker.getMetrics().getNumberOfFailedCalls(),
+                    pagosCircuitBreaker.getCircuitBreakerConfig().getMinimumNumberOfCalls());
+
             try {
-                log.info("Verificando estado de pago para Orden ID: {}", orden.getId());
+                log.info("Verificando Orden #{}", orden.getId());
 
-                // 2. Consultamos directamente al microservicio de pagos vía HTTP
-                // Usamos el nombre del servicio gracias a Eureka
-                String url = "http://pagos-service/api/pagos/orden/" + orden.getId();
-
-                // Suponemos que pagos-service devuelve un objeto con el estado
-                // Si el pago existe y está APROBADO, actualizamos la orden
-                PagoStatusResponse pago = restTemplate.getForObject(url, PagoStatusResponse.class);
+                PagoStatusResponse pago = pagosCircuitBreaker.executeSupplier(() -> {
+                    String url = "http://pagos-service/api/pagos/orden/" + orden.getId();
+                    return restTemplate.getForObject(url, PagoStatusResponse.class);
+                });
 
                 if (pago != null && "APROBADO".equals(pago.getEstado())) {
                     orden.setEstado("PAGADA");
                     ordenRepository.save(orden);
-                    log.info("✔ Orden {} sincronizada con éxito a PAGADA", orden.getId());
+                    log.info("✔ ÉXITO: Orden #{} sincronizada correctamente.", orden.getId());
                 }
+
+            } catch (CallNotPermittedException e) {
+                log.error("🛑 FUSIBLE ABIERTO: El servicio de pagos está fallando. Saltando Orden #{} para proteger el sistema.", orden.getId());
             } catch (Exception e) {
-                log.error("No se pudo verificar la orden {}: {}", orden.getId(), e.getMessage());
+                log.error("❌ ERROR en Orden #{}: {}", orden.getId(), e.getMessage());
             }
         });
+
+        log.info("▶▶▶ FIN DEL PROCESO DE CONTINGENCIA ◀◀◀");
     }
 }
