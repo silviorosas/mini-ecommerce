@@ -67,6 +67,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
+      TZ: "America/Argentina/Buenos_Aires"
     ports:
       - "3307:3306"
     volumes:
@@ -162,6 +163,8 @@ services:
       - SPRING_CLOUD_STREAM_BINDINGS_CONSUMIRRESPUESTAPAGO-IN-0_GROUP=ordenes-group
       - SPRING_CLOUD_STREAM_BINDINGS_ORDENES-TOPIC-OUT-0_DESTINATION=ordenes-topic
 
+      - TZ=America/Argentina/Buenos_Aires
+
     depends_on:
       mysql:
         condition: service_healthy
@@ -228,6 +231,34 @@ services:
         condition: service_healthy
     networks:
       - me-net
+
+  # --- NUEVA SECCIÓN: OBSERVABILIDAD (PROMETHEUS & GRAFANA) ---
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Asegúrate de crear este archivo en tu carpeta raíz
+    ports:
+      - "9090:9090"
+    networks:
+      - me-net # Conectado a la red de los microservicios
+    depends_on:
+      - ordenes-service # Espera a que el servicio de órdenes esté listo
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Contraseña por defecto para tu demo
+    networks:
+      - me-net
+    depends_on:
+      - prometheus # Grafana necesita a Prometheus como fuente de datos
+
+
 volumes:
   mysql-data:
   mongo-data:

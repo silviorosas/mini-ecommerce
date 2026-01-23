@@ -30,7 +30,7 @@ public class OrdenPagoUpdateJob {
 
         CircuitBreaker pagosCircuitBreaker = circuitBreakerRegistry.circuitBreaker("pagosCB");
 
-        LocalDateTime umbral = LocalDateTime.now().minusMinutes(10);
+        LocalDateTime umbral = LocalDateTime.now().minusMinutes(5);
         List<Orden> pendientes = ordenRepository.findByEstadoAndFechaCreacionBefore("PENDIENTE_PAGO", umbral);
 
         if (pendientes.isEmpty()) {

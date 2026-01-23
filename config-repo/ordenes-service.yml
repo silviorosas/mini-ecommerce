@@ -37,6 +37,9 @@ resilience4j:
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
         waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+          # Hace que el Circuit Breaker aparezca con lujo de detalles en /actuator/health
+        registerHealthIndicator: true
 
 eureka:
   client:
@@ -47,3 +50,21 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${random.value}
+
+# --- NUEVA SECCIÓN: MONITOREO CON ACTUATOR Y PROMETHEUS ---
+# Aquí habilitamos los endpoints necesarios para que Grafana pueda leer el estado del sistema
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics # Exponemos Prometheus al exterior
+  endpoint:
+    health:
+      show-details: always # Permite ver el estado detallado de los componentes
+  metrics:
+    export:
+      prometheus:
+        enabled: true # Activa específicamente el formato de datos para Prometheus
+  health:
+    circuitbreakers:
+      enabled: true # Fundamental: permite ver si el CB está OPEN o CLOSED vía HTTP

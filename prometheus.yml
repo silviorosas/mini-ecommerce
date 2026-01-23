@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 5s # Muy rápido para que el video de LinkedIn se vea fluido
+
+scrape_configs:
+  - job_name: 'ordenes-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ordenes-service:8080']
